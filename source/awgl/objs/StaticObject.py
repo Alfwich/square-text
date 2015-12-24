@@ -6,6 +6,7 @@ class StaticObject(GameObject.GameObject):
 
     def __init__(self):
         super(StaticObject, self).__init__()
+        self._bitmap = None
         self.bitmap = None
         self.velocity = [0,0]
         self.renderRect = None
@@ -13,10 +14,15 @@ class StaticObject(GameObject.GameObject):
     def _updateRenderRect(self):
         self.renderRect = self.bitmap.get_rect()
 
+    def setAlpha(self, newAlpha):
+        newBitmap = self._bitmap.copy()
+        self.bitmap = newBitmap
+        self.bitmap.fill((255, 255, 255, newAlpha), None, pygame.BLEND_RGBA_MULT)
+
     def setBitmap(self, surface):
         if not surface is None:
             self.setSize(surface.get_width(), surface.get_height())
-            self.bitmap = surface
+            self._bitmap = self.bitmap = surface
             self._updateRenderRect()
 
     def scaleBitmap(self, xScale, yScale):

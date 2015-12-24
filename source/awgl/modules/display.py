@@ -19,7 +19,7 @@ def _updateTitle():
 def init():
     global _screenModes
     pygame.display.init()
-    pygame.mouse.set_visible(False)
+    #pygame.mouse.set_visible(False)
     _screenModes = pygame.display.list_modes()[::-1]
     _updateScreen()
     _updateTitle()
