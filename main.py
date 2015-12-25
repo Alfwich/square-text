@@ -95,6 +95,7 @@ def main():
             self.setAlignment(GameObject.alignment.TOP, GameObject.alignment.LEFT)
             self.bitmap = pygame.Surface((width, height))
             self._bitmap = self.bitmap.copy()
+            self.changes = []
             self.zoom = zoom
             self.colorDelta = 64
             self.color = pygame.Color(255, 255, 255)
@@ -171,6 +172,7 @@ def main():
 
         def mouseLeftClicked(self, event):
             if tuple(self.mouseCoords) in self.ignore:
+                pass
                 self.ignore.remove(tuple(self.mouseCoords))
             else:
                 self.ignore.add(tuple(self.mouseCoords))
@@ -183,41 +185,56 @@ def main():
 
         def _getNeighbors(self, x, y):
             neighbors = []
-            for xDelta in range(-1, 2):
-                modifiedX = x + xDelta
-                modifiedY = y + 1
-                if modifiedX >= 0 and modifiedX < self.bitmap.get_width() and modifiedY >= 0 and modifiedY < self.bitmap.get_height():
+            for yDelta in range(0, 2):
+                for xDelta in range(-1, 2):
+                    if yDelta == 0 and xDelta == 0:
+                        continue
+                    modifiedX = x + xDelta
+                    modifiedY = y + yDelta
+
+                    if modifiedX < 0 or modifiedX >= self.bitmap.get_width() or modifiedY < 0 or modifiedY >= self.bitmap.get_height():
+                        continue
+
                     neighbors.append((modifiedX, modifiedY))
 
             return neighbors
 
-
-        def _pushColors(self, x, y):
-            currentColor = self.bitmap.get_at((x,y))
-            amountToPush = currentColor / pygame.Color(2,2,2)
-            neighbors = self._getNeighbors(x, y)
+        def _transferColor(self, x, y, currentColor, neighbors):
+            randomPush = 2
+            amountToPush = currentColor / pygame.Color(randomPush, randomPush, randomPush)
             perPixelPush = amountToPush / pygame.Color(len(neighbors), len(neighbors), len(neighbors))
             newMainColor = currentColor - amountToPush
             for neighbor in neighbors:
                 if neighbor not in self.ignore:
-                    neighborColor = self.bitmap.get_at(neighbor)
-                    newColor = neighborColor+perPixelPush
-                    self.bitmap.set_at(neighbor, newColor)
+                    self.changes.append((neighbor, 1, perPixelPush))
+
             if not (x, y) in self.ignore:
-                self.bitmap.set_at((x,y), newMainColor)
+                self.changes.append(((x, y), -1, newMainColor))
+
+        def _generateColorChanges(self, x, y):
+            currentColor = self.bitmap.get_at((x,y))
+            neighbors = self._getNeighbors(x, y)
+            self._transferColor(x, y, currentColor, neighbors)
+
+        def _applyChanges(self):
+            for change in self.changes:
+                pxColor = self.bitmap.get_at(change[0])
+                if change[1] == 1:
+                    self.bitmap.set_at(change[0], pxColor+change[2])
+                else:
+                    self.bitmap.set_at(change[0], pxColor-change[2])
+            self.changes = []
+
 
         def diffuse(self):
             #print("Diffuse!")
             self._bitmap = self.bitmap.copy()
-            for x in range(self._bitmap.get_height()):
-                for y in range(self._bitmap.get_width()):
+            for x in range(self._bitmap.get_width()):
+                for y in range(self._bitmap.get_height()):
                     #if (x, y) in self.ignore: continue
-                    self._pushColors(y, x)
-                    """
-                    pixel = self._computePixelDiffuse(x, y)
-                    #print pixel
-                    self.bitmap.set_at((x, y), pixel)
-                    """
+                    self._generateColorChanges(x, y)
+
+            self._applyChanges()
 
             #print("Should diffuse")
 
